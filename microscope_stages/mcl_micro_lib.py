@@ -435,6 +435,7 @@ def image_fields(params, start=(0, 0), target_list=[[0, v] for v in range(24)]):
         target_loc = np.array(loc)
         rel_move = target_loc - current_loc
         xy_rel_move = alignment.uv2xy(rel_move, tran, angle, zoom, include_trans=False)
+        xy_rel_move = np.pad(xy_rel_move, (0, 1))
         #Micro1.move_R(rel_coordinates=xy_rel_move, velocity=0.1, rounding=1)
         print('allow 5 s to move.')
         time.sleep(1)
