@@ -47,8 +47,10 @@ print(status)
 #%%
 rel_coordinates = [0.1,0,0] # in mm
 Micro1.move_R(rel_coordinates = rel_coordinates, velocity = 0.01, rounding = 1)
+print('now')
 
 #%%
 Micro1.mcl_close()
 
 #%%
+mcl_micro_lib.mcl_alignment()
