@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import easygui
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from scipy import stats
@@ -25,6 +24,7 @@ def get_dead_devices(df, cutoff=5e-6):
             dead_list.append(device)
     return dead_list
 
+
 def plot_all(df,
              title='title',
              cutoff=1E-5,
@@ -46,8 +46,8 @@ def plot_all(df,
     fig, ax1 = plt.subplots(figsize=(30*centimetre, 20*centimetre))
     plt.subplots_adjust(left=None, bottom=None, right=0.8, top=None, wspace=None, hspace=None)
 
-    G_mean = dfa.G[dfa.device.isin(liveDevices)].mean()
-    G_std = dfa.G_std[dfa.device.isin(liveDevices)].mean()
+    G_mean = dfa.G_mean[liveDevices].mean()
+    G_std = dfa.G_std[liveDevices].mean()
     add_text = 'G_mean_live = ' + '{:.2E}'.format(G_mean) + '\n' + 'G_mean_std_live = ' + '{:.2E}'.format(G_std)
     ax1.text(1.03, 0.0, add_text, transform=ax1.transAxes)
 
@@ -77,17 +77,13 @@ def plot_all(df,
 
 
 def get_G_average(df):
-    device_list = df.device.unique()
-    ResultsDF = pd.DataFrame()
-    for device in device_list:
-        df1 = df[df['device'] == device]
-        #print(df1)
-        ResultsDF = ResultsDF.append({'device': device, 'G': df1.G.mean(), 'G_std': df1.G.std(),
-                                      'G_sterr': df1.G.sem()}, ignore_index=True)
-    return ResultsDF
+    dfa = df.groupby(['device']).agg({'G': ['mean', 'std', 'sem']})
+    dfa.columns = ['G_mean', 'G_std', 'G_sterr']
+    return dfa
+
 
 def plot_IV(df, device=None, ID=None, repeat=None):
-    '''Supply either an ID or a device number with the repeat number'''
+    """Supply either an ID or a device number with the repeat number"""
     fig, ax1 = plt.subplots()
 
     if repeat is None and ID is None:
@@ -102,6 +98,7 @@ def plot_IV(df, device=None, ID=None, repeat=None):
         x = list(map(float, df1['V_SD'].tolist()[0].replace('[', '').replace(']', '').split(',')))
         y = list(map(float, df1['I_SD'].tolist()[0].replace('[', '').replace(']', '').split(',')))
         ax1.plot(x, y)
+
 
 def check_values(df,
                  R_ev=1e3,
@@ -123,11 +120,12 @@ def check_values(df,
     ev = 1/(R_ev+100) #100 ohm internal resistance of multiplexer
     zero_tol = 1/R_zero_tol
 
-    topDevices = [i for i in range(1, 12 + 1)] + [i for i in range(24, 34 + 1)]
-    bottomDevices = [i for i in range(13, 23 + 1)] + [i for i in range(35, 46 + 1)]
-    allDevices = topDevices + bottomDevices
+    top_devices = [i for i in range(1, 12 + 1)] + [i for i in range(24, 34 + 1)]
+    bottom_devices = [i for i in range(13, 23 + 1)] + [i for i in range(35, 46 + 1)]
+    all_devices = top_devices + bottom_devices
 
     dfa = get_G_average(df)
+    print(dfa)
 
     G_OK = []
     noise_OK = []
@@ -135,19 +133,19 @@ def check_values(df,
     noise_bad = []
 
     if device_type == 'top':
-        liveDevices = topDevices
-        deadDevices = bottomDevices
+        liveDevices = top_devices
+        deadDevices = bottom_devices
     elif device_type == 'bottom':
-        liveDevices = bottomDevices
-        deadDevices = topDevices
+        liveDevices = bottom_devices
+        deadDevices = top_devices
     elif device_type == 'all':
-        liveDevices = allDevices
+        liveDevices = all_devices
         deadDevices = []
 
     # check live devices
     for device in liveDevices:
-        G = float(dfa.G.loc[dfa.device == device])
-        std = float(dfa.G_std.loc[dfa.device == device])
+        G = dfa.G_mean[device]
+        std = dfa.G_std[device]
         if (G*(1+tol) > ev) & (G*(1-tol) < ev):
             G_OK.append(device)
         else:
@@ -157,8 +155,8 @@ def check_values(df,
         else:
             noise_bad.append(device)
 
-    G_a_live = dfa.G[dfa.device.isin(G_OK)].mean()
-    STD_a_live = dfa.G_std[dfa.device.isin(G_OK)].mean()
+    G_a_live = dfa.G_mean[G_OK].mean()
+    STD_a_live = dfa.G_std[G_OK].mean()
 
     report_c = ('G average of devices within range =  ' + str(G_a_live) + ' S \n' +
               'STD average of devices within range =  ' + str(STD_a_live) + ' S \n \n' +
@@ -167,7 +165,7 @@ def check_values(df,
               'G out of range for devices: ' + str(G_bad) + '\n'
               'noise within range for devices: ' + str(noise_OK) + '\n'
               'noise out of range range for devices: ' + str(noise_bad) + '\n \n'
-          )
+                )
     #print(report_c)
     #check disconnected devices
     completeReport = completeReport + report_c
@@ -177,8 +175,8 @@ def check_values(df,
     G_bad = []
     noise_bad = []
     for device in deadDevices:
-        G = float(dfa.G.loc[dfa.device == device])
-        std = float(dfa.G_std.loc[dfa.device == device])
+        G = dfa.G_mean[device]
+        std = dfa.G_std[device]
         if (G < zero_tol) & (G*tol < zero_tol):
             G_OK.append(device)
         else:
@@ -189,8 +187,8 @@ def check_values(df,
             noise_bad.append(device)
 
     if device_type != 'all':
-        G_a_live = dfa.G[dfa.device.isin(G_OK)].mean()
-        STD_a_live = dfa.G_std[dfa.device.isin(G_OK)].mean()
+        G_a_live = dfa.G_mean[G_OK].mean()
+        STD_a_live = dfa.G_std[G_OK].mean()
         #print('G average of disconnected devices within range =  ' + str(G_a_live) + ' S')
         #print('STD average of disconnected devices within range =  ' + str(STD_a_live) + ' S')
 
@@ -201,7 +199,7 @@ def check_values(df,
                     'G out of range for devices: ' + str(G_bad) + '\n'
                     'noise within range for devices: ' + str(noise_OK) + '\n'
                     'noise out of range range for devices: ' + str(noise_bad) + '\n'
-              )
+                    )
         completeReport = completeReport + report_d
 
     print(completeReport)
@@ -215,35 +213,25 @@ def check_values(df,
 
     return dfa
 
+
 def check_noise(df, basePath = 'G:/Shared drives/Nanoelectronics Team Drive/Data/2021/Marta/test'):
     dfa = get_G_average(df)
     print(dfa.G_std.mean())
-    #return (dfa.G_std)
+    return (dfa.G_std)
+
 
 def plot_all_live_add_legend(ax1):
     ax1.legend(ncol=2, loc=9, bbox_to_anchor=(1.13, 1.0))
     print('added legend')
 
-def plot_all_live(df, deviceList, fig, ax1, title='sample name', cutoff=-10, label=False):
 
-        #legend = False
-        #first_legend = True
-        #if deviceList == list(df.device) and first_legend == True:
-            #legend = True
-
-        #dfa = get_G_average(df)
+def plot_all_live(df, ax1, title='sample name', cutoff=-10, label=False):
 
         liveDevices = get_live_devices(df, cutoff=cutoff)
         deadDevices = get_dead_devices(df, cutoff=cutoff)
 
         linestyles = ['-', '--', '-.', ':']
-        color = iter(cm.tab20(np.linspace(0, 1, len(liveDevices))))  # change 46 to i
-
-        #G_mean = dfa.G[dfa.device.isin(liveDevices)].mean()
-        #G_std = dfa.G_std[dfa.device.isin(liveDevices)].mean()
-        #add_text = 'G_mean_live = ' + '{:.2E}'.format(G_mean) + '\n' + 'G_mean_std_live = ' + '{:.2E}'.format(G_std)
-        #t1 = ax1.text(1.03, 0.0, add_text, transform=ax1.transAxes)
-        #t1.set_text(str(add_text))
+        color = iter(cm.tab20(np.linspace(0, 1, len(liveDevices))))
 
         ax1.set_title(title)
         ax1.set(xlabel='time (s)', ylabel='G (S)')
@@ -254,7 +242,6 @@ def plot_all_live(df, deviceList, fig, ax1, title='sample name', cutoff=-10, lab
                 ax1.plot(df1['time'], df1['G'], color=next(color), label=device, linestyle=linestyles[i % 4 - 1])
             if label == False:
                 ax1.plot(df1['time'], df1['G'], color=next(color), linestyle=linestyles[i % 4 - 1])
-
 
         for device in deadDevices:
             df1 = df[df['device'] == device]
@@ -313,17 +300,17 @@ def basic_stat_2seg(df, event_repeat, plot_all_bool = False, cutoff = 0):
     #get averages
     df_G_before_av = get_G_average(df_before)
     df_G_after_av = get_G_average(df_after)
-    df_for_box1 = pd.DataFrame({'before': list(df_G_before_av.G), 'after': list(df_G_after_av.G)})
+    df_for_box1 = pd.DataFrame({'before': list(df_G_before_av.G_mean), 'after': list(df_G_after_av.G_mean)})
 
     #paired ttest for G
-    tt = stats.ttest_rel(df_G_before_av.G, df_G_after_av.G)
+    tt = stats.ttest_rel(df_G_before_av.G_mean, df_G_after_av.G_mean)
     print(tt)
 
     #error bar plot all
     for device in live_list:
         x = ['before', 'after']
-        y = [float(df_G_before_av.G[df_G_before_av.device == device]), float(df_G_after_av.G[df_G_after_av.device == device])]
-        yerr = [float(df_G_before_av.G_sterr[df_G_before_av.device == device]), float(df_G_after_av.G_sterr[df_G_after_av.device == device])]
+        y = [float(df_G_before_av.G_mean[device]), float(df_G_after_av.G_mean[device])]
+        yerr = [float(df_G_before_av.G_sterr[device]), float(df_G_after_av.G_sterr[device])]
         ax1.errorbar(x, y, yerr=yerr)
 
     ax1.set_ylabel('G (S)')
@@ -335,14 +322,14 @@ def basic_stat_2seg(df, event_repeat, plot_all_bool = False, cutoff = 0):
     ax2.set_ylabel('G (S)')
 
     #relative hist
-    rel_diff = (df_G_after_av.G - df_G_before_av.G)/df_G_before_av.G
+    rel_diff = (df_G_after_av.G_mean - df_G_before_av.G_mean)/df_G_before_av.G_mean
     ax3.hist(rel_diff, fc='lightcoral', ec='black')
     ax3.set_xlabel(r'$(G_{after}-G_{after})/G_{before}$')
     ax3.set_ylabel('number of devices')
     ax3.axvline(rel_diff.mean(), color='k', linestyle='dashed', linewidth=1)
 
     #absolute hist
-    abs_diff = (df_G_after_av.G - df_G_before_av.G)
+    abs_diff = (df_G_after_av.G_mean - df_G_before_av.G_mean)
     ax4.hist(abs_diff, fc='cornflowerblue', ec='black')
     ax4.set_xlabel(r'$G_{after}-G_{after}$')
     ax4.set_ylabel('number of devices')
@@ -355,13 +342,16 @@ def basic_stat_2seg(df, event_repeat, plot_all_bool = False, cutoff = 0):
     ax1.text(-0.2, -1.8, add_text, transform=ax1.transAxes)
 
 
-
 if __name__ == "__main__":
-    df = pd.read_csv('G:/Shared drives/Nanoelectronics Team Drive/Data/2021/Marta/simulation/simulation.csv')
-    plot_all(df, cutoff=0.01)
-    basic_stat_2seg(df, event_repeat=20,cutoff=0.01)
-    plot_IV(df,device=1, repeat=5)
-    get_dead_devices(df, cutoff=0.01)
+    df = pd.read_csv('C:/Users/Jan Gluschke/Desktop/demo/demo7/test.csv')
+    plot_all(df, cutoff=0.00001)
+    # basic_stat_2seg(df, event_repeat=20,cutoff=0.01)
+    # plot_IV(df,device=1, repeat=5)
+    # get_dead_devices(df, cutoff=0.01)
+
+    check_values(df, device_type='bottom')
+    #dfa = get_G_average(df)
+    print(get_G_average(df))
     print('done')
 
 

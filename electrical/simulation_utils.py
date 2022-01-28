@@ -4,7 +4,7 @@ import random
 import matplotlib.pyplot as plt
 
 
-def rand_split(l, ratio=[0.8,0.1,0.1]):
+def rand_split(l, ratio=[0.8, 0.1, 0.1]):
     l1, l2, l3 = [], [], []
     for e in l:
         val = random.random()
@@ -18,7 +18,8 @@ def rand_split(l, ratio=[0.8,0.1,0.1]):
 
 
 def generate_data(device_list=np.array([i for i in range(1, 46)]),
-                  repeats=50, event_repeat=25,
+                  repeats=50,
+                  event_repeat=25,
                   percent_drop=0.1,
                   percent_rise=0.2,
                   drop_vs_rise=0.8,
@@ -30,7 +31,7 @@ def generate_data(device_list=np.array([i for i in range(1, 46)]),
 
     # Generate G1
     G1 = np.zeros(device_list.shape[0])
-    for i,e in enumerate(device_list):
+    for i, e in enumerate(device_list):
         if e in l1 or e in l2:
             G1[i] = 0.02 * np.random.randn(1) + 0.1
         else:
@@ -38,7 +39,7 @@ def generate_data(device_list=np.array([i for i in range(1, 46)]),
 
     # Generate G2
     G2 = np.zeros(device_list.shape[0])
-    for i,e in enumerate(device_list):
+    for i, e in enumerate(device_list):
         if e in l1:
             G2[i] = G1[i] - (0.005 * np.random.randn(1) + 0.15*G1[i])
         elif e in l2:
@@ -46,22 +47,22 @@ def generate_data(device_list=np.array([i for i in range(1, 46)]),
         else:
             G2[i] = 0
 
-    Gf = np.zeros((device_list.shape[0],repeats))
+    Gf = np.zeros((device_list.shape[0], repeats))
 
     # Generate repeats
     for j in range(repeats):
-        for i,e in enumerate(device_list):
+        for i, e in enumerate(device_list):
             if j < event_repeat:
                 Gf[i-1,j] = 0.0001 * np.random.randn(1) + G1[i-1]
             else:
                 Gf[i-1, j] = 0.0001 * np.random.randn(1) + G2[i-1]
 
-    if plot == True:
+    if plot:
         x = np.arange(len(device_list))
         for i,e in enumerate(device_list):
             plt.plot([r for r in range(repeats)],Gf[i-1])
 
-    if print_Gf == True:
+    if print_Gf:
         print(Gf)
 
     return Gf

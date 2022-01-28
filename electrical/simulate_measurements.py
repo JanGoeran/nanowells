@@ -10,7 +10,8 @@ from pathlib import Path
 import simulation_utils
 import analysis
 
-def simulate_measure(deviceList=[i for i in range(1, 10)],
+
+def simulate_measure(device_list=[i for i in range(1, 10)],
                      fileName='simulation',
                      repeats=10,
                      event_repeat=5,
@@ -22,7 +23,9 @@ def simulate_measure(deviceList=[i for i in range(1, 10)],
                      plot_speed=1
                      ):
 
-    G_data = simulation_utils.generate_data(device_list=deviceList, repeats=repeats, event_repeat=event_repeat)
+    G_data = simulation_utils.generate_data(device_list=device_list,
+                                            repeats=repeats,
+                                            event_repeat=event_repeat)
 
     stop_text = """If you want to shut down the program early, 
     go to G:\\Shared drives\\Nanoelectronics Team Drive\\Data\\2021\\Marta\\Stop button 
@@ -69,7 +72,7 @@ def simulate_measure(deviceList=[i for i in range(1, 10)],
     ID = 0
 
     for j in range(repeats):
-        for i, device in enumerate(deviceList):
+        for i, device in enumerate(device_list):
             time_1 = time.time() - t0  # Gets time relative to start time of the measurement
             ID += 1
 
@@ -87,10 +90,10 @@ def simulate_measure(deviceList=[i for i in range(1, 10)],
             #df1 = MasterDF[MasterDF['device'] == device]  # creates dataframe with just one device to plot as a distinct line in live plot
             # live plotting. Adding legend on first repeat zero
             if i%plot_speed == 0:
-                if len(MasterDF.device.unique()) < len(deviceList):
-                    analysis.plot_all_live(MasterDF, deviceList=deviceList, fig=fig, ax1=ax1, label=False)
+                if len(MasterDF.device.unique()) < len(device_list):
+                    analysis.plot_all_live(MasterDF, deviceList=device_list, fig=fig, ax1=ax1, label=False)
                 else:
-                    analysis.plot_all_live(MasterDF, deviceList=deviceList, fig=fig, ax1=ax1, label=True)
+                    analysis.plot_all_live(MasterDF, deviceList=device_list, fig=fig, ax1=ax1, label=True)
 
                     if add_legend == True:
                         analysis.plot_all_live_add_legend(ax1)
@@ -118,7 +121,7 @@ def simulate_measure(deviceList=[i for i in range(1, 10)],
 
     Path(basePath + "/devices").mkdir(parents=True, exist_ok=True)
 
-    for device in deviceList:  # saves result tables for individual devices
+    for device in device_list:  # saves result tables for individual devices
         df_ind = MasterDF[MasterDF['device'] == device]
         df_ind.to_csv(basePath + '/devices/' + fileName + '_device_' + str(device) + '.csv')
 
@@ -143,9 +146,9 @@ if __name__ == '__main__':
     t0 = time.time()
 
     df, basePath = simulate_measure(repeats=10, event_repeat=5, currentVoltagePreAmp_gain=1E3,
-                 deviceList=[i for i in range(1,20)],
-                 comment=comment,
-                 plot_speed=1)
+                                    device_list=[i for i in range(1, 20)],
+                                    comment=comment,
+                                    plot_speed=1)
 
     t1 = time.time()
 
