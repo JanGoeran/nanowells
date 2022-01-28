@@ -13,15 +13,15 @@ import analysis
 from scipy import stats
 
 
-def fit_for_Master(df,xVar='V_SD',yVar='I_SD'):
-    slope, intercept, r_value, p_value, std_err = stats.linregress(df[xVar],df[yVar])
+def fit_for_Master(df, xVar='V_SD', yVar='I_SD'):
+    slope, intercept, r_value, p_value, std_err = stats.linregress(df[xVar], df[yVar])
     return {'G': [slope], 'std_err': [std_err]}
 
 
 def merge_df(Params, Fit, Master):
     Params.update(Fit)
     DF = pd.DataFrame(Params)
-    Master = Master.append(DF, ignore_index = True)
+    Master = Master.append(DF, ignore_index=True)
     return Master
 
 
@@ -35,6 +35,7 @@ def micr_measure(deviceList=[i for i in range(1, 47)],
                  testSample='no',
                  plot_speed=1
                  ):
+
     stop_text = """If you want to shut down the program early, 
     go to G:\\Shared drives\\Nanoelectronics Team Drive\\Data\\2021\\Marta\\Stop button 
     open the \'stop\' file and replace this text with \'stop\'. Then save and close the file. 
@@ -43,9 +44,9 @@ def micr_measure(deviceList=[i for i in range(1, 47)],
     with open('G:/Shared drives/Nanoelectronics Team Drive/Data/2021/Marta/Stop button/stop.txt', 'w') as f:
         f.write(stop_text)
 
-    start_sd = start_end_step[0]  # USER INPUT start value for IV sweep
-    end_sd = start_end_step[1]  # USER INPUT end value for IV sweep
-    step_sd = start_end_step[2]  # USER INPUT step size for IV sweep
+    start_sd = start_end_step[0]
+    end_sd = start_end_step[1]
+    step_sd = start_end_step[2]
     V_SD = U.targetArray([start_sd, end_sd, start_sd],
                          stepsize=step_sd)  # creates array of V_sd value for voltage sweep
 
@@ -117,13 +118,13 @@ def micr_measure(deviceList=[i for i in range(1, 47)],
                                  MasterDF)  # Performs linear fit of IV sweep to get G and adds G to result table
             df1 = MasterDF[MasterDF['device'] == device]  # creates dataframe with just one device to plot as a distinct line in live plot
             # live plotting. Adding legend on first repeat zero
-            if i%plot_speed == 0:
+            if i % plot_speed == 0:
                 if len(MasterDF.device.unique()) < len(deviceList):
-                    analysis.plot_all_live(MasterDF, deviceList=deviceList, fig=fig, ax1=ax1, label=False)
+                    analysis.plot_all_live(MasterDF, ax1=ax1, label=False)
                 else:
-                    analysis.plot_all_live(MasterDF, deviceList=deviceList, fig=fig, ax1=ax1, label=True)
+                    analysis.plot_all_live(MasterDF, ax1=ax1, label=True)
 
-                    if add_legend == True:
+                    if add_legend:
                         analysis.plot_all_live_add_legend(ax1)
                         add_legend = False
 
@@ -169,9 +170,9 @@ if __name__ == '__main__':
     t0 = time.time()
 
     df, basePath = micr_measure(repeats=5, currentVoltagePreAmp_gain=1E3,
-                 deviceList=[i for i in range(35,45)],
+                 deviceList=[i for i in range(1, 47)],
                  comment=comment,
-                 plot_speed=5)
+                 plot_speed=10)
 
     t1 = time.time()
 
